@@ -1,0 +1,766 @@
+
+<link href="https://fonts.googleapis.com/css2?family=Lexend+Exa&family=Roboto&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+@font-face{font-family:'OD';src:url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic@master/compiled/OpenDyslexic-Regular.otf') format('opentype');}
+*{box-sizing:border-box;margin:0;padding:0;}
+.wrap{display:flex;padding:0;}
+.browser{background:#dee1e6;border-radius:8px 8px 0 0;overflow:hidden;flex:1;border:1px solid #aaa;box-shadow:0 6px 28px rgba(0,0,0,.18);}
+.tabstrip{background:#dee1e6;display:flex;align-items:center;padding:6px 8px 0;gap:2px;height:36px;-webkit-app-region:drag;}
+.ctab{background:white;border-radius:8px 8px 0 0;padding:0 10px 0 9px;font-size:12px;color:#333;display:flex;align-items:center;gap:6px;min-width:160px;max-width:220px;height:28px;font-family:system-ui,sans-serif;border:0.5px solid #ccc;border-bottom:none;flex-shrink:0;}
+.ctab-fav{width:14px;height:14px;object-fit:contain;border-radius:2px;flex-shrink:0;}
+.ctab-ttl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;}
+.ctab-x{color:#999;font-size:14px;cursor:pointer;line-height:1;padding:0 2px;}
+.ntab{background:none;border:none;color:#555;font-size:16px;cursor:pointer;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:system-ui;}
+.ntab:hover{background:rgba(0,0,0,.1);}
+/* push window controls to far right */
+.ts-spacer{flex:1;}
+.wcgrp{display:flex;align-items:center;height:100%;}
+.wc{background:none;border:none;width:36px;height:100%;cursor:pointer;font-size:12px;color:#333;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}
+.wc:hover{background:rgba(0,0,0,.1);}
+.wc-x:hover{background:#c42b1c;color:white;}
+
+/* - Top bar with address - */
+.addrrow{background:#f1f3f4;padding:5px 8px;display:flex;align-items:center;gap:5px;border-bottom:1px solid #ccc;}
+.nb{width:26px;height:26px;background:none;border:none;color:#555;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-family:system-ui;}
+.nb:hover{background:rgba(0,0,0,.08);}
+.nb:disabled{color:#ccc;cursor:default;}
+.addrbar{flex:1;background:white;border:1px solid #ccc;border-radius:18px;padding:4px 14px;font-size:12px;color:#333;display:flex;align-items:center;gap:5px;font-family:system-ui,sans-serif;}
+.extbtn{width:30px;height:30px;background:none;border:none;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;padding:3px;}
+.extbtn:hover{background:rgba(0,0,0,.1);}
+
+/* - Page & extension layout - */
+.content{display:flex;height:546px;}
+.page{flex:1;padding:20px 22px;overflow-y:auto;position:relative;transition:background .3s;}
+.pov{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:.35;display:none;z-index:2;}
+.rul{position:absolute;left:0;right:0;height:40px;pointer-events:none;display:none;z-index:7;top:140px;background:rgba(255,220,50,.26);border-top:2px solid rgba(112,38,112,.5);border-bottom:2px solid rgba(112,38,112,.5);}
+.ftop{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.72);pointer-events:none;display:none;z-index:5;height:0;}
+.fbot{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);pointer-events:none;display:none;z-index:5;height:0;}
+.mag{position:absolute;width:160px;height:160px;border-radius:50%;overflow:hidden;border:3px solid #702670;box-shadow:0 4px 28px rgba(0,0,0,.6);display:none;z-index:20;pointer-events:none;background:white;}
+.mag-in{position:absolute;transform-origin:0 0;pointer-events:none;}
+
+/* - Article random text - */
+.art{font-size:15px;line-height:1.8;margin-bottom:13px;transition:font-size .2s,line-height .2s,letter-spacing .2s,font-family .25s,word-spacing .2s,text-align .2s,color .3s;}
+.art-heading,.art-meta{transition:color .3s;}
+
+/* ── Extension popup ── */
+.popup{width:300px;background:#f5f0fc;border-left:1px solid #d4c8eb;display:flex;flex-direction:column;overflow:hidden;transition:width .22s;}
+.popup.closed{width:0;}
+.popup,.popup *{font-family:'OD',cursive;}
+.screen{display:none;flex-direction:column;height:100%;}
+.screen.active{display:flex;}
+.tog{width:38px;height:22px;background:#bbb;border-radius:11px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none;outline:none;}
+.tog.on{background:#702670;}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.tog.on::after{transform:translateX(16px);}
+.phdr{padding:11px 13px;border-bottom:1px solid #d4c8eb;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#ede6fa;}
+.pscroll{flex:1;overflow-y:auto;overflow-x:hidden;}
+.hero{padding:16px 13px 10px;text-align:center;background:#ede6fa;}
+.qbar{padding:0 13px 11px;background:#ede6fa;}
+.qlaunch{width:100%;background:rgba(102,2,60,.09);border:2px solid #66023c;border-radius:10px;padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:background .15s;}
+.qlaunch:hover{background:rgba(102,2,60,.16);}
+.pref-el{width:100%;background:rgba(112,38,112,.09);border:2px solid #702670;border-radius:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;}
+.wavewrap{padding:0 7px 5px;background:#ede6fa;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 13px 14px;}
+.tile{background:white;border:2px solid #d4c8eb;border-radius:12px;padding:16px 8px 12px;cursor:pointer;text-align:center;transition:all .15s;position:relative;}
+.tile:hover{border-color:#702670;background:rgba(112,38,112,.05);}
+.tile.on{border-color:#702670;background:rgba(112,38,112,.1);}
+.tile-tog{position:absolute;top:8px;right:8px;}
+.tile-img{width:90px;height:90px;object-fit:contain;display:block;margin:0 auto 2px;}
+.tile-lbl{font-size:15px;font-weight:bold;color:#2a1060;}
+.tile-sub{font-size:11px;color:#6b5b8b;margin-top:3px;}
+.shdr{padding:11px 13px;border-bottom:1px solid #d4c8eb;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#ede6fa;}
+.back{background:none;border:none;cursor:pointer;color:#6b5b8b;font-size:24px;padding:0;line-height:1;}
+.sscroll{overflow-y:auto;flex:1;}
+.slbl{padding:12px 13px 5px;font-size:12px;font-weight:bold;color:#6b5b8b;text-transform:uppercase;letter-spacing:.04em;}
+.frow{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;cursor:pointer;transition:background .1s;}
+.frow:hover{background:rgba(112,38,112,.06);}
+.frow-l{font-size:15px;font-weight:bold;}
+.frow-s{font-size:11px;color:#6b5b8b;margin-top:2px;}
+.sep{border:none;border-top:1px solid #d4c8eb;margin:4px 0;}
+.swrap{padding:2px 13px 10px;}
+.srow{display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px;color:#6b5b8b;}
+.sval{font-weight:bold;color:#2a1060;}
+input[type=range]{width:100%;}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:5px 13px 11px;}
+.fchip{border:2px solid #d4c8eb;border-radius:9px;padding:11px 6px 9px;text-align:center;cursor:pointer;transition:all .15s;background:white;}
+.fchip:hover{border-color:#702670;}
+.fchip.on{border-color:#702670;background:rgba(112,38,112,.1);}
+.fchip-s{font-size:26px;line-height:1.3;margin-bottom:6px;color:#2a1060;}
+.fchip-n{font-size:13px;color:#6b5b8b;}
+.abtn{display:flex;gap:7px;padding:5px 13px 11px;}
+.abtn button{flex:1;padding:9px 3px;border:2px solid #d4c8eb;background:transparent;border-radius:8px;cursor:pointer;font-size:17px;transition:all .15s;color:#2a1060;}
+.abtn button:hover{border-color:#702670;}
+.abtn button.on{border-color:#702670;background:rgba(112,38,112,.1);}
+.rcolors{display:flex;gap:8px;padding:4px 13px 11px;}
+.rcol{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s;}
+.rcol:hover{transform:scale(1.15);}
+.rcol.on{border-color:#702670;}
+.cpresets{padding:5px 13px 11px;}
+.cpreset{border:2px solid #d4c8eb;border-radius:10px;cursor:pointer;margin-bottom:9px;overflow:hidden;transition:all .15s;}
+.cpreset:hover{border-color:#702670;}
+.cpreset.on{border-color:#702670;}
+.cprev{height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;font-family:'OD',cursive!important;}
+.cplbl{padding:7px 11px 9px;font-size:14px;font-family:'OD',cursive!important;}
+.ovdots{display:flex;gap:8px;padding:4px 13px 11px;flex-wrap:wrap;}
+.ovdot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s;}
+.ovdot:hover{transform:scale(1.15);}
+.ovdot.on{border-color:#702670;}
+.qstep{display:none;padding:13px 13px 14px;}
+.qstep.active{display:block;}
+.qdots{display:flex;gap:5px;justify-content:center;padding:4px 0 12px;}
+.qdot{width:9px;height:9px;border-radius:50%;background:#d4c8eb;transition:background .2s;}
+.qdot.on{background:#702670;}
+.qtitle{font-size:17px;font-weight:bold;margin-bottom:12px;color:#2a1060;}
+.qcards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
+.qcard{border:2px solid #d4c8eb;border-radius:10px;padding:14px 8px 10px;cursor:pointer;text-align:center;transition:all .15s;background:white;}
+.qcard:hover{border-color:#702670;background:rgba(112,38,112,.07);}
+.qcard.on{border-color:#702670;background:rgba(112,38,112,.13);}
+.qcard-s{font-size:17px;line-height:1.4;margin-bottom:7px;color:#2a1060;}
+.qcard-n{font-size:11px;color:#6b5b8b;font-family:'OD',cursive!important;}
+.bgcard{border:2px solid #d4c8eb;border-radius:10px;cursor:pointer;margin-bottom:9px;overflow:hidden;transition:all .15s;}
+.bgcard:hover{border-color:#702670;}
+.bgcard.on{border-color:#702670;}
+.bgprev{height:42px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;font-family:'OD',cursive!important;}
+.bglbl{padding:7px 11px 9px;font-size:14px;font-family:'OD',cursive!important;}
+.qbtn{background:#702670;color:white;border:none;border-radius:10px;padding:13px 0;width:100%;cursor:pointer;font-size:16px;font-weight:bold;transition:background .15s;margin-top:5px;font-family:'OD',cursive!important;}
+.qbtn:hover{background:#5a1f5a;}
+.qbtn.sec{background:transparent;color:#6b5b8b;border:1px solid #d4c8eb;}
+.qbtn.sec:hover{background:rgba(0,0,0,.05);}
+</style>
+
+<div class="wrap">
+<div class="browser">
+
+<!-- Tab strip: tab on left, + in middle, window controls flush right -->
+<div class="tabstrip">
+  <div class="ctab">
+    <img class="ctab-fav" src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" onerror="this.style.display='none'">
+    <span class="ctab-ttl">DysLexi | Prototype</span>
+    <span class="ctab-x">&#215;</span>
+  </div>
+  <button class="ntab" style="margin-left:4px;">&#43;</button>
+  <div class="ts-spacer"></div>
+  <div class="wcgrp">
+    <button class="wc" title="Minimise">&#8211;</button>
+    <button class="wc" title="Restore">&#9633;</button>
+    <button class="wc wc-x" title="Close">&#215;</button>
+  </div>
+</div>
+
+<div class="addrrow">
+  <button class="nb" disabled>&#8592;</button>
+  <button class="nb">&#8594;</button>
+  <button class="nb">&#8635;</button>
+  <div class="addrbar"><span>&#128274;</span><span>bbc.co.uk/news/science/octopus-intelligence</span></div>
+  <button class="extbtn" onclick="toggleExt()" title="DysLexi">
+    <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="22" height="22" style="border-radius:4px;" onerror="this.outerHTML='<span style=font-size:16px>&#128024;</span>'">
+  </button>
+</div>
+
+<div class="content">
+  <div class="page" id="page" onmousemove="pageMove(event)">
+    <div class="pov" id="ov"></div>
+    <div class="rul" id="rul"></div>
+    <div class="ftop" id="ftop"></div>
+    <div class="fbot" id="fbot"></div>
+    <div class="mag" id="mag"><div class="mag-in" id="mag-in"></div></div>
+    <div id="ac" style="max-width:490px;margin:0 auto;">
+      <span style="display:inline-block;background:#eef3fd;color:#2060b0;font-size:10px;font-weight:500;padding:2px 8px;border-radius:4px;margin-bottom:10px;letter-spacing:.05em;font-family:system-ui;">SCIENCE</span>
+      <h1 id="h1" class="art-heading" style="font-size:20px;font-weight:600;line-height:1.3;margin:0 0 7px;">Octopuses Reveal Secrets of Deep-Sea Intelligence</h1>
+      <p id="pmeta" class="art-meta" style="font-size:11px;color:#666;margin:0 0 14px;font-family:system-ui,sans-serif;">BBC Science · 26 March 2026 · 5 min read</p>
+      <div style="height:110px;border-radius:9px;margin-bottom:14px;background:linear-gradient(135deg,#2a1060,#702670);display:flex;align-items:center;justify-content:center;">
+        <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="82" height="82" style="object-fit:contain;" onerror="this.outerHTML='<span style=font-size:60px>&#128024;</span>'">
+      </div>
+      <p class="art" id="p1">Researchers at the Marine Biological Laboratory have discovered that octopuses possess a form of episodic memory — the ability to recall specific past events — long thought to be exclusive to mammals and birds.</p>
+      <p class="art" id="p2">The study, published in Current Biology, found that octopuses could remember the location, timing, and outcome of individual foraging events, adapting their future behaviour accordingly.</p>
+      <h2 id="h2" class="art-heading" style="font-size:15px;font-weight:600;margin:16px 0 7px;">Nine brains, infinite curiosity</h2>
+      <p class="art" id="p3">An octopus technically has nine brains — one central and one in each arm — each capable of independent decision-making. Scientists believe this distributed nervous system underpins their extraordinary adaptability.</p>
+      <p class="art" id="p4">Dr Yuki Tanaka noted that unlike social animals, octopuses are almost entirely solitary — meaning their cognitive complexity arose through a completely different evolutionary pathway to our own.</p>
+    </div>
+  </div>
+
+  <div class="popup closed" id="popup">
+
+      <!-- HOME -->
+      <div class="screen active" id="s-home">
+          <div class="phdr">
+              <div>
+                  <div style="font-size:18px;font-weight:bold;color:#2a1060;">DysLexi</div>
+                  <div style="font-size:12px;color:#6b5b8b;" id="status-lbl">Active</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;">
+                  <button class="tog on" id="master-tog" onclick="masterToggle()"></button>
+                  <button onclick="toggleExt()" style="background:none;border:none;cursor:pointer;color:#6b5b8b;font-size:24px;padding:0;line-height:1;font-weight:300;">&#215;</button>
+              </div>
+          </div>
+          <div class="pscroll">
+              <div class="hero">
+                  <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="150" height="150" style="object-fit:contain;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" onerror="this.outerHTML='<div style=font-size:100px;margin-bottom:10px>&#128024;</div>'">
+                  <div style="font-size:17px;font-weight:bold;color:#2a1060;">Hi, I'm Lexi!</div>
+                  <div style="font-size:13px;color:#6b5b8b;margin-top:3px;">Your dyslexia reading assistant</div>
+              </div>
+              <div class="qbar">
+                  <button class="qlaunch" id="ql-btn" onclick="openS('s-quiz')">
+                      <span style="font-size:22px;">&#10024;</span>
+                      <div>
+                          <div style="font-size:14px;font-weight:bold;color:#66023c;">Personalisation quiz</div>
+                          <div style="font-size:12px;color:#6b5b8b;">3 steps · find your best settings</div>
+                      </div>
+                  </button>
+                  <div class="pref-el" id="pref-el" style="display:none;">
+                      <div>
+                          <div style="font-size:14px;font-weight:bold;color:#702670;">Your preferred settings</div>
+                          <div style="font-size:12px;color:#6b5b8b;">Applied from your quiz</div>
+                      </div>
+                      <button class="tog on" id="pref-tog" onclick="togglePrefs()"></button>
+                  </div>
+              </div>
+              <div class="wavewrap">
+                  <img width="100%" height="18" viewBox="0 0 260 14" preserveAspectRatio="none" class="title-img" src="https://framerusercontent.com/images/jy4EU5dQyIs16S2prkYq1b2NOs.png"></img>
+              </div>
+              <div class="grid">
+                  <div class="tile" id="tile-text" onclick="openS('s-text')">
+                      <div class="tile-tog"><button class="tog" id="ttog-text" onclick="event.stopPropagation();catToggle('text')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/NwO7fAm39kkDBOCOi2zC8ymMfs.png" width: 80px; height: 80px; object-fit: contain; display: block; margin: 0 auto 2px; onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>🅰️</div>'">
+                      <div class="tile-lbl">Text</div><div class="tile-sub">Font & spacing</div>
+                  </div>
+                  <div class="tile" id="tile-colour" onclick="openS('s-colour')">
+                      <div class="tile-tog"><button class="tog" id="ttog-colour" onclick="event.stopPropagation();catToggle('colour')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/Ecl5k8LadstJkKh0akSttDMvlg.png" onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>🎨</div>'">
+                      <div class="tile-lbl">Colours</div><div class="tile-sub">Contrast & overlay</div>
+                  </div>
+                  <div class="tile" id="tile-audio" onclick="openS('s-audio')">
+                      <div class="tile-tog"><button class="tog" id="ttog-audio" onclick="event.stopPropagation();catToggle('audio')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/VlNGA7SGaFU4Knpsw7EOfwQW68.png" onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>🔊</div>'">
+                      <div class="tile-lbl">Audio</div><div class="tile-sub">Text to speech</div>
+                  </div>
+                  <div class="tile" id="tile-reading" onclick="openS('s-reading')">
+                      <div class="tile-tog"><button class="tog" id="ttog-reading" onclick="event.stopPropagation();catToggle('reading')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/FL3Nz47JEcRucXi0zDLdcwDg.png" onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>📖</div>'">
+                      <div class="tile-lbl">Reading</div><div class="tile-sub">Ruler &amp; focus</div>
+                  </div>
+                  <div class="tile" id="tile-translate" onclick="openS('s-translate')">
+                      <div class="tile-tog"><button class="tog" id="ttog-translate" onclick="event.stopPropagation();catToggle('translate')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/ISoho2B3OZjkAusXVJNuBLSh2m4.png" onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>🌐</div>'">
+                      <div class="tile-lbl">Translate</div><div class="tile-sub">Change language</div>
+                  </div>
+                  <div class="tile" id="tile-ocr" onclick="openS('s-ocr')">
+                      <div class="tile-tog"><button class="tog" id="ttog-ocr" onclick="event.stopPropagation();catToggle('ocr')"></button></div>
+                      <img class="tile-img" src="https://framerusercontent.com/images/F1bxt3I0lWcokEwLpOPEG1tYdM.png" onerror="this.outerHTML='<div style=font-size:40px;margin-bottom:2px>🔍</div>'">
+                      <div class="tile-lbl">OCR</div><div class="tile-sub">Read image text</div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- TEXT -->
+      <div class="screen" id="s-text">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Text settings</span></div>
+          <div class="sscroll">
+              <div class="slbl">Font</div>
+              <div class="fgrid" id="fgrid">
+                  <div class="fchip on" id="fc-arial" onclick="selFont('fc-arial','Arial,sans-serif')"><div class="fchip-s" style="font-family:Arial,sans-serif;">Aa</div><div class="fchip-n" style="font-family:Arial,sans-serif;">Arial</div></div>
+                  <div class="fchip" id="fc-lexend" onclick="selFont('fc-lexend','Lexend Exa,sans-serif')"><div class="fchip-s" style="font-family:'Lexend Exa',sans-serif;">Aa</div><div class="fchip-n" style="font-family:'Lexend Exa',sans-serif;">Lexend Exa</div></div>
+                  <div class="fchip" id="fc-georgia" onclick="selFont('fc-georgia','Georgia,serif')"><div class="fchip-s" style="font-family:Georgia,serif;">Aa</div><div class="fchip-n" style="font-family:Georgia,serif;">Georgia</div></div>
+                  <div class="fchip" id="fc-trebuchet" onclick="selFont('fc-trebuchet','Trebuchet MS,sans-serif')"><div class="fchip-s" style="font-family:'Trebuchet MS',sans-serif;">Aa</div><div class="fchip-n" style="font-family:'Trebuchet MS',sans-serif;">Trebuchet</div></div>
+                  <div class="fchip" id="fc-roboto" onclick="selFont('fc-roboto','Roboto,sans-serif')"><div class="fchip-s" style="font-family:Roboto,sans-serif;">Aa</div><div class="fchip-n" style="font-family:Roboto,sans-serif;">Roboto</div></div>
+                  <div class="fchip" id="fc-helvetica" onclick="selFont('fc-helvetica','Helvetica Neue,Helvetica,Arial,sans-serif')"><div class="fchip-s" style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Aa</div><div class="fchip-n" style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Helvetica</div></div>
+                  <div class="fchip" id="fc-gothic" onclick="selFont('fc-gothic','Century Gothic,Futura,sans-serif')"><div class="fchip-s" style="font-family:Century Gothic,Futura,sans-serif;">Aa</div><div class="fchip-n" style="font-family:Century Gothic,Futura,sans-serif;">Gothic</div></div>
+                  <div class="fchip" id="fc-od" onclick="selFont('fc-od','OD,cursive')"><div class="fchip-s" style="font-family:'OD',cursive;">Aa</div><div class="fchip-n" style="font-family:'OD',cursive;">OpenDyslexic</div></div>
+              </div>
+              <div class="swrap"><div class="srow"><span>Text size</span><span class="sval" id="v-sz">100%</span></div><input type="range" min="80" max="170" value="100" step="5" oninput="doSz(this.value)"></div>
+              <div class="swrap"><div class="srow"><span>Word spacing</span><span class="sval" id="v-ws">0px</span></div><input type="range" min="0" max="10" value="0" step="0.5" oninput="doWS(this.value)"></div>
+              <div class="swrap"><div class="srow"><span>Letter spacing</span><span class="sval" id="v-ls">0px</span></div><input type="range" min="0" max="5" value="0" step="0.5" oninput="doLS(this.value)"></div>
+              <div class="swrap"><div class="srow"><span>Line height</span><span class="sval" id="v-lh">1.8</span></div><input type="range" min="1.2" max="3.0" value="1.8" step="0.1" oninput="doLH(this.value)"></div>
+              <div class="slbl">Alignment</div>
+              <div class="abtn">
+                  <button class="on" id="al-l" onclick="doAlign('left',this)">&#8592;</button>
+                  <button id="al-c" onclick="doAlign('center',this)">&#8596;</button>
+                  <button id="al-r" onclick="doAlign('right',this)">&#8594;</button>
+                  <button id="al-j" onclick="doAlign('justify',this)">&#8660;</button>
+              </div>
+          </div>
+      </div>
+
+      <!-- COLOUR -->
+      <div class="screen" id="s-colour">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Colours</span></div>
+          <div class="sscroll">
+              <div class="slbl">Contrast preset</div>
+              <div class="cpresets">
+                  <div class="cpreset on" id="cp-none" onclick="setPreset('none')"><div class="cprev" style="background:white;color:#333;">The quick brown fox</div><div class="cplbl">Default · no preset</div></div>
+                  <div class="cpreset" id="cp-navygold" onclick="setPreset('navygold')"><div class="cprev" style="background:#1a2a6c;color:#f5cc00;">The quick brown fox</div><div class="cplbl">Navy &amp; Gold</div></div>
+                  <div class="cpreset" id="cp-forestcoral" onclick="setPreset('forestcoral')"><div class="cprev" style="background:#1a5c1a;color:#ff9090;">The quick brown fox</div><div class="cplbl">Forest &amp; Coral</div></div>
+                  <div class="cpreset" id="cp-midmint" onclick="setPreset('midmint')"><div class="cprev" style="background:#0a2040;color:#64ffb4;">The quick brown fox</div><div class="cplbl">Midnight &amp; Mint</div></div>
+                  <div class="cpreset" id="cp-parchment" onclick="setPreset('parchment')"><div class="cprev" style="background:#e8d5b0;color:#1a3a8f;">The quick brown fox</div><div class="cplbl">Parchment &amp; Navy</div></div>
+              </div>
+              <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-ov',applyOV)">
+                  <div><div class="frow-l">Colour overlay</div><div class="frow-s">Semi-transparent tint</div></div>
+                  <button class="tog" id="t-ov"></button>
+              </div>
+              <div id="ovpick" style="display:none;">
+                  <div class="ovdots">
+                      <div class="ovdot on" style="background:#fffcb8;" onclick="setOVC('#fffcb8',this)"></div>
+                      <div class="ovdot" style="background:#c8e6c9;" onclick="setOVC('#c8e6c9',this)"></div>
+                      <div class="ovdot" style="background:#bbdefb;" onclick="setOVC('#bbdefb',this)"></div>
+                      <div class="ovdot" style="background:#f8bbd9;" onclick="setOVC('#f8bbd9',this)"></div>
+                      <div class="ovdot" style="background:#ffe0b2;" onclick="setOVC('#ffe0b2',this)"></div>
+                      <div class="ovdot" style="background:#e1bee7;" onclick="setOVC('#e1bee7',this)"></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- AUDIO -->
+      <div class="screen" id="s-audio">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Audio</span></div>
+          <div class="sscroll">
+              <div class="frow" onclick="doTTS()">
+                  <div><div class="frow-l">Read page aloud</div><div class="frow-s" id="tts-sub">Uses browser voices</div></div>
+                  <button class="tog" id="t-tts"></button>
+              </div>
+              <div class="swrap" style="padding-top:10px;"><div class="srow"><span>Reading speed</span><span class="sval" id="v-spd">1.0×</span></div><input type="range" min="0.5" max="2.0" value="1.0" step="0.1" oninput="doSpd(this.value)"></div>
+          </div>
+      </div>
+
+      <!-- READING -->
+      <div class="screen" id="s-reading">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Reading tools</span></div>
+          <div class="sscroll">
+              <div class="frow" onclick="flipTog('t-rul',applyRul)">
+                  <div><div class="frow-l">Reading ruler</div><div class="frow-s">Highlighted strip follows cursor</div></div>
+                  <button class="tog" id="t-rul"></button>
+              </div>
+              <div class="slbl">Ruler colour</div>
+              <div class="rcolors">
+                  <div class="rcol on" style="background:#ffe050;" onclick="setRulC('rgba(255,220,50,.26)','rgba(112,38,112,.5)',this)"></div>
+                  <div class="rcol" style="background:#90caf9;" onclick="setRulC('rgba(100,180,255,.3)','rgba(30,80,200,.5)',this)"></div>
+                  <div class="rcol" style="background:#a5d6a7;" onclick="setRulC('rgba(120,220,120,.3)','rgba(30,140,60,.5)',this)"></div>
+                  <div class="rcol" style="background:#f48fb1;" onclick="setRulC('rgba(240,120,160,.28)','rgba(180,40,80,.5)',this)"></div>
+                  <div class="rcol" style="background:#ce93d8;" onclick="setRulC('rgba(180,100,220,.28)','rgba(100,20,140,.5)',this)"></div>
+              </div>
+              <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-focus',applyFocus)">
+                  <div><div class="frow-l">Focus mode</div><div class="frow-s">Darkens all text except your line</div></div>
+                  <button class="tog" id="t-focus"></button>
+              </div>
+              <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-mag',applyMag)">
+                  <div><div class="frow-l">Magnifier</div><div class="frow-s">Zoom circle follows cursor on page</div></div>
+                  <button class="tog" id="t-mag"></button>
+              </div>
+          </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div class="screen" id="s-quiz">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Find your settings</span></div>
+          <div class="sscroll">
+              <div class="qstep active" id="qs0">
+                  <div style="text-align:center;padding:10px 0 8px;">
+                      <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="80" height="80" style="object-fit:contain;margin-bottom:10px;" onerror="this.outerHTML='<div style=font-size:52px>&#128024;</div>'">
+                      <div style="font-size:17px;font-weight:bold;margin-bottom:6px;">Let's find your settings</div>
+                      <div style="font-size:13px;color:#6b5b8b;margin-bottom:18px;line-height:1.5;">3 quick choices. Tap what looks best.</div>
+                  </div>
+                  <button class="qbtn" onclick="goQ(1)">Start &#8594;</button>
+                  <button class="qbtn sec" onclick="goHome()" style="margin-top:8px;">Skip</button>
+              </div>
+              <div class="qstep" id="qs1">
+                  <div class="qdots"><div class="qdot on"></div><div class="qdot"></div><div class="qdot"></div></div>
+                  <div class="qtitle">Which feels easiest?</div>
+                  <div class="qcards">
+                      <div class="qcard on" id="qf-arial" onclick="qFont('qf-arial','')"><div class="qcard-s" style="font-family:Arial,sans-serif;">The fox jumps.</div><div class="qcard-n">Arial</div></div>
+                      <div class="qcard" id="qf-lexend" onclick="qFont('qf-lexend','Lexend Exa,sans-serif')"><div class="qcard-s" style="font-family:'Lexend Exa',sans-serif;">The fox jumps.</div><div class="qcard-n">Lexend Exa</div></div>
+                      <div class="qcard" id="qf-georgia" onclick="qFont('qf-georgia','Georgia,serif')"><div class="qcard-s" style="font-family:Georgia,serif;">The fox jumps.</div><div class="qcard-n">Georgia</div></div>
+                      <div class="qcard" id="qf-od" onclick="qFont('qf-od','OD,cursive')"><div class="qcard-s" style="font-family:'OD',cursive;">The fox jumps.</div><div class="qcard-n">OpenDyslexic</div></div>
+                  </div>
+                  <button class="qbtn" onclick="goQ(2)">Next &#8594;</button>
+              </div>
+              <div class="qstep" id="qs2">
+                  <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot"></div></div>
+                  <div class="qtitle">Which is easiest to read?</div>
+                  <div class="bgcard on" id="qbg-none" onclick="qBG('qbg-none','none')"><div class="bgprev" style="background:white;color:#333;">The quick brown fox</div><div class="bglbl">Default · plain white</div></div>
+                  <div class="bgcard" id="qbg-navygold" onclick="qBG('qbg-navygold','navygold')"><div class="bgprev" style="background:#1a2a6c;color:#f5cc00;">The quick brown fox</div><div class="bglbl">Navy &amp; Gold</div></div>
+                  <div class="bgcard" id="qbg-midmint" onclick="qBG('qbg-midmint','midmint')"><div class="bgprev" style="background:#0a2040;color:#64ffb4;">The quick brown fox</div><div class="bglbl">Midnight &amp; Mint</div></div>
+                  <div class="bgcard" id="qbg-parch" onclick="qBG('qbg-parch','parchment')"><div class="bgprev" style="background:#e8d5b0;color:#1a3a8f;">The quick brown fox</div><div class="bglbl">Parchment &amp; Navy</div></div>
+                  <button class="qbtn" onclick="goQ(3)">Next &#8594;</button>
+              </div>
+              <div class="qstep" id="qs3">
+                  <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div></div>
+                  <div class="qtitle">Add a colour tint?</div>
+                  <div class="bgcard on" id="qov-none" onclick="qOV('qov-none',null)"><div class="bgprev" style="background:#f5f5f5;color:#444;">No tint</div></div>
+                  <div class="bgcard" id="qov-yellow" onclick="qOV('qov-yellow','#fffcb8')"><div class="bgprev" style="background:#fffcb8;color:#5a4a00;">Yellow · warm &amp; soft</div></div>
+                  <div class="bgcard" id="qov-blue" onclick="qOV('qov-blue','#bbdefb')"><div class="bgprev" style="background:#bbdefb;color:#0d3a6e;">Blue · cool &amp; calm</div></div>
+                  <div class="bgcard" id="qov-green" onclick="qOV('qov-green','#c8e6c9')"><div class="bgprev" style="background:#c8e6c9;color:#1b4a1e;">Green · gentle</div></div>
+                  <button class="qbtn" onclick="finishQuiz()">Done &#10003;</button>
+              </div>
+          </div>
+      </div>
+
+      <!-- TRANSLATE -->
+      <div class="screen" id="s-translate">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Translate</span></div>
+          <div class="sscroll">
+              <div class="slbl">Target language</div>
+              <div style="padding:5px 13px 14px;">
+                  <select id="lang-sel" style="width:100%;padding:10px 12px;border:2px solid #d4c8eb;border-radius:10px;font-family:'OD',cursive;font-size:14px;color:#2a1060;background:white;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%23702670%22 fill=%22none%22 stroke-width=%222%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;" onchange="setTile('translate',this.value!=='')">
+                      <option value="">— select language —</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="it">Italian</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="nl">Dutch</option>
+                      <option value="pl">Polish</option>
+                      <option value="ro">Romanian</option>
+                      <option value="ar">Arabic</option>
+                      <option value="zh">Chinese (Simplified)</option>
+                      <option value="ja">Japanese</option>
+                      <option value="ko">Korean</option>
+                      <option value="hi">Hindi</option>
+                      <option value="ru">Russian</option>
+                      <option value="tr">Turkish</option>
+                      <option value="sv">Swedish</option>
+                      <option value="no">Norwegian</option>
+                      <option value="da">Danish</option>
+                      <option value="fi">Finnish</option>
+                      <option value="uk">Ukrainian</option>
+                  </select>
+              </div>
+              <div style="padding:0 13px 14px;">
+                  <button onclick="doTranslate()" style="width:100%;background:#702670;color:white;border:none;border-radius:10px;padding:13px;font-family:'OD',cursive;font-size:15px;font-weight:bold;cursor:pointer;">Translate page &#8594;</button>
+              </div>
+              <div id="trans-status" style="padding:0 13px 10px;font-size:13px;color:#6b5b8b;display:none;"></div>
+              <div class="sep"></div>
+              <div style="padding:12px 13px 10px;">
+                  <button onclick="revertTranslate()" style="width:100%;background:transparent;color:#702670;border:2px solid #702670;border-radius:10px;padding:11px;font-family:'OD',cursive;font-size:14px;cursor:pointer;">Revert to original</button>
+              </div>
+              <div style="padding:8px 13px 14px;font-size:12px;color:#9b8bab;line-height:1.5;">Powered by MyMemory · free tier · works offline-ish · best for short passages</div>
+          </div>
+      </div>
+
+      <!-- OCR -->
+      <div class="screen" id="s-ocr">
+          <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">OCR · Read image text</span></div>
+          <div class="sscroll">
+              <div style="padding:14px 13px 6px;font-size:13px;color:#6b5b8b;line-height:1.6;">Upload an image containing text and Lexi will read it aloud or display it below.</div>
+              <div style="padding:6px 13px 14px;">
+                  <label for="ocr-file" style="display:block;border:2px dashed #702670;border-radius:12px;padding:22px 13px;text-align:center;cursor:pointer;background:rgba(112,38,112,.04);transition:background .15s;" onmouseover="this.style.background='rgba(112,38,112,.09)'" onmouseout="this.style.background='rgba(112,38,112,.04)'">
+                      <div style="font-size:34px;margin-bottom:8px;">&#128444;</div>
+                      <div style="font-family:'OD',cursive;font-size:14px;color:#702670;font-weight:bold;">Click to upload image</div>
+                      <div style="font-family:'OD',cursive;font-size:12px;color:#9b8bab;margin-top:4px;">PNG, JPG, GIF supported</div>
+                      <input type="file" id="ocr-file" accept="image/*" style="display:none;" onchange="runOCR(this)">
+                  </label>
+              </div>
+              <div id="ocr-preview-wrap" style="padding:0 13px 10px;display:none;">
+                  <img id="ocr-preview" style="width:100%;border-radius:8px;border:1px solid #d4c8eb;" src="">
+              </div>
+              <div id="ocr-progress" style="padding:0 13px 10px;display:none;">
+                  <div style="background:#ede6fa;border-radius:8px;padding:12px;font-family:'OD',cursive;font-size:13px;color:#702670;" id="ocr-prog-txt">Starting OCR…</div>
+                  <div style="background:#d4c8eb;border-radius:4px;height:6px;margin-top:8px;overflow:hidden;"><div id="ocr-bar" style="background:#702670;height:100%;width:0%;transition:width .3s;border-radius:4px;"></div></div>
+              </div>
+              <div id="ocr-result-wrap" style="padding:0 13px 14px;display:none;">
+                  <div class="slbl" style="padding:0 0 6px;">Extracted text</div>
+                  <div id="ocr-result" style="border:2px solid #d4c8eb;border-radius:10px;padding:12px;font-family:'OD',cursive;font-size:14px;color:#2a1060;line-height:1.7;white-space:pre-wrap;min-height:60px;background:white;"></div>
+                  <button onclick="speakOCR()" style="margin-top:10px;width:100%;background:#702670;color:white;border:none;border-radius:10px;padding:11px;font-family:'OD',cursive;font-size:14px;font-weight:bold;cursor:pointer;">&#128266; Read aloud</button>
+                  <button onclick="copyOCR()" style="margin-top:8px;width:100%;background:transparent;color:#702670;border:2px solid #702670;border-radius:10px;padding:9px;font-family:'OD',cursive;font-size:13px;cursor:pointer;" id="copy-ocr-btn">Copy text</button>
+              </div>
+              <div style="padding:4px 13px 14px;font-size:12px;color:#9b8bab;line-height:1.5;">Powered by Tesseract.js · runs entirely in your browser · no data sent anywhere</div>
+          </div>
+      </div>
+
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+var extOpen=false,masterOn=true,rulerOn=false,focusOn=false,magOn=false,ovOn=false,ttsOn=false;
+var ttsSpd=1.0,ttsUtt=null,prefsOn=false,quizDone=false;
+var qFontV='',qPresetV='none',qOVV=null;
+var PRESETS={
+  none:{bg:'',text:''},
+  navygold:{bg:'#1a2a6c',text:'#f5cc00'},
+  forestcoral:{bg:'#1a5c1a',text:'#ff9090'},
+  midmint:{bg:'#0a2040',text:'#64ffb4'},
+  parchment:{bg:'#e8d5b0',text:'#1a3a8f'}
+};
+
+/* ── helpers ── */
+function toggleExt(){extOpen=!extOpen;document.getElementById('popup').classList.toggle('closed',!extOpen);}
+function goHome(){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('s-home').classList.add('active');}
+function openS(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');}
+
+/* Apply preset colours to ALL article text — paragraphs, headings, metadata */
+function applyPresetColours(textCol){
+  document.querySelectorAll('.art,.art-heading,.art-meta').forEach(function(e){e.style.color=textCol||'';});
+}
+
+function masterToggle(){
+  masterOn=!masterOn;
+  document.getElementById('master-tog').classList.toggle('on',masterOn);
+  document.getElementById('status-lbl').textContent=masterOn?'Active':'Paused';
+  if(!masterOn){
+    if(ttsOn)doTTS();
+    document.getElementById('rul').style.display='none';
+    document.getElementById('ftop').style.display='none';document.getElementById('fbot').style.display='none';
+    document.getElementById('mag').style.display='none';
+    document.getElementById('ov').style.display='none';
+    document.getElementById('page').style.cssText='';
+    document.querySelectorAll('.art,.art-heading,.art-meta').forEach(function(e){e.style.cssText='';});
+  }
+}
+
+function catToggle(cat){
+  var tog=document.getElementById('ttog-'+cat);
+  var tile=document.getElementById('tile-'+cat);
+  var on=tog.classList.toggle('on');
+  tile.classList.toggle('on',on);
+  if(!on){
+    if(cat==='text'){
+      document.querySelectorAll('.art,.art-heading').forEach(function(e){e.style.fontFamily='';e.style.fontSize='';e.style.lineHeight='';e.style.letterSpacing='';e.style.wordSpacing='';e.style.textAlign='';});
+      document.querySelectorAll('#fgrid .fchip').forEach(function(c){c.classList.remove('on');});
+      document.getElementById('fc-arial').classList.add('on');
+    }
+    if(cat==='colour'){setPreset('none');if(ovOn)flipTog('t-ov',applyOV);}
+    if(cat==='audio'){if(ttsOn)doTTS();}
+    if(cat==='reading'){
+      if(rulerOn){rulerOn=false;document.getElementById('rul').style.display='none';document.getElementById('t-rul').classList.remove('on');}
+      if(focusOn){focusOn=false;document.getElementById('ftop').style.display='none';document.getElementById('fbot').style.display='none';document.getElementById('t-focus').classList.remove('on');}
+      if(magOn){magOn=false;document.getElementById('mag').style.display='none';document.getElementById('t-mag').classList.remove('on');document.getElementById('page').style.cursor='';}
+    }
+  }
+}
+
+function setTile(cat,on){document.getElementById('tile-'+cat).classList.toggle('on',on);document.getElementById('ttog-'+cat).classList.toggle('on',on);}
+
+/* ── Text ── */
+function selFont(chipId,ff){
+  document.querySelectorAll('#fgrid .fchip').forEach(function(c){c.classList.remove('on');});
+  document.getElementById(chipId).classList.add('on');
+  applyFontF(ff);setTile('text',true);
+}
+function applyFontF(ff){
+  var fam=ff||'';
+  document.querySelectorAll('.art,.art-heading').forEach(function(e){e.style.fontFamily=fam;});
+}
+function doSz(v){document.getElementById('v-sz').textContent=v+'%';document.querySelectorAll('.art').forEach(function(e){e.style.fontSize=(15*v/100).toFixed(1)+'px';});setTile('text',true);}
+function doWS(v){document.getElementById('v-ws').textContent=parseFloat(v).toFixed(1)+'px';document.querySelectorAll('.art').forEach(function(e){e.style.wordSpacing=v+'px';});setTile('text',true);}
+function doLS(v){document.getElementById('v-ls').textContent=parseFloat(v).toFixed(1)+'px';document.querySelectorAll('.art').forEach(function(e){e.style.letterSpacing=v+'px';});setTile('text',true);}
+function doLH(v){document.getElementById('v-lh').textContent=parseFloat(v).toFixed(1);document.querySelectorAll('.art').forEach(function(e){e.style.lineHeight=v;});setTile('text',true);}
+function doAlign(val,btn){document.querySelectorAll('.abtn button').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');document.querySelectorAll('.art').forEach(function(e){e.style.textAlign=val;});setTile('text',true);}
+
+/* ── Colour ── */
+function setPreset(key){
+  document.querySelectorAll('.cpreset').forEach(function(c){c.classList.remove('on');});
+  document.getElementById('cp-'+key).classList.add('on');
+  var p=PRESETS[key]||{bg:'',text:''};
+  document.getElementById('page').style.background=p.bg||'';
+  applyPresetColours(p.text);  /* <-- applies to ALL article text */
+  setTile('colour',key!=='none'||ovOn);
+}
+function flipTog(id,cb){var el=document.getElementById(id);var on=el.classList.toggle('on');if(cb)cb(on);return on;}
+function applyOV(on){
+  ovOn=on;
+  document.getElementById('ov').style.display=on?'block':'none';
+  document.getElementById('ovpick').style.display=on?'block':'none';
+  var activePreset=document.querySelector('.cpreset.on');
+  setTile('colour',on||(activePreset&&activePreset.id!=='cp-none'));
+}
+function setOVC(c,el){document.getElementById('ov').style.background=c;document.querySelectorAll('.ovdot').forEach(function(d){d.classList.remove('on');});el.classList.add('on');}
+
+/* ── Audio ── */
+function doTTS(){
+  if(!masterOn)return;
+  ttsOn=!document.getElementById('t-tts').classList.contains('on');
+  document.getElementById('t-tts').classList.toggle('on',ttsOn);
+  var sub=document.getElementById('tts-sub');
+  if(ttsOn){
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      var txt=document.getElementById('ac').innerText.replace(/\s+/g,' ');
+      ttsUtt=new SpeechSynthesisUtterance(txt);ttsUtt.rate=ttsSpd;
+      ttsUtt.onend=function(){document.getElementById('t-tts').classList.remove('on');ttsOn=false;sub.textContent='Uses browser voices';setTile('audio',false);};
+      window.speechSynthesis.speak(ttsUtt);sub.textContent='Reading aloud…';setTile('audio',true);
+    } else {sub.textContent='Not supported here';}
+  } else {
+    if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    sub.textContent='Uses browser voices';setTile('audio',false);
+  }
+}
+function doSpd(v){ttsSpd=parseFloat(v);document.getElementById('v-spd').textContent=ttsSpd.toFixed(1)+'×';if(ttsUtt)ttsUtt.rate=ttsSpd;}
+
+/* ── Reading ── */
+function applyRul(on){rulerOn=on;document.getElementById('rul').style.display=on?'block':'none';if(on)document.getElementById('page').style.cursor='none';else if(!magOn)document.getElementById('page').style.cursor='';setTile('reading',rulerOn||focusOn||magOn);}
+function setRulC(bg,bord,el){var r=document.getElementById('rul');r.style.background=bg;r.style.borderTopColor=bord;r.style.borderBottomColor=bord;document.querySelectorAll('.rcol').forEach(function(d){d.classList.remove('on');});el.classList.add('on');}
+function applyFocus(on){focusOn=on;document.getElementById('ftop').style.display=on?'block':'none';document.getElementById('fbot').style.display=on?'block':'none';setTile('reading',rulerOn||focusOn||magOn);}
+function applyMag(on){
+  magOn=on;
+  var page=document.getElementById('page');
+  if(on){
+    var ac=document.getElementById('ac');
+    var magIn=document.getElementById('mag-in');
+    magIn.innerHTML=ac.innerHTML;
+    magIn.style.background=page.style.background||'white';
+    magIn.style.width=ac.offsetWidth+'px';
+    magIn.querySelectorAll('.art').forEach(function(el,i){
+      var orig=ac.querySelectorAll('.art')[i];if(orig){el.style.cssText=orig.style.cssText;}
+    });
+    document.getElementById('mag').style.display='block';
+    page.style.cursor='none';
+  } else {
+    document.getElementById('mag').style.display='none';
+    if(!rulerOn)page.style.cursor='';
+  }
+  setTile('reading',rulerOn||focusOn||magOn);
+}
+
+function pageMove(e){
+  var page=document.getElementById('page');
+  var rect=page.getBoundingClientRect();
+  var cx=e.clientX-rect.left;var cy=e.clientY-rect.top;
+  if(rulerOn)document.getElementById('rul').style.top=Math.max(0,cy-20)+'px';
+  if(focusOn){var ph=page.clientHeight,strip=50;document.getElementById('ftop').style.height=Math.max(0,cy-strip/2)+'px';document.getElementById('fbot').style.height=Math.max(0,ph-cy-strip/2)+'px';}
+  if(magOn){
+    var MAG_R=80,MAG_Z=2.5;
+    var mag=document.getElementById('mag');
+    mag.style.left=(cx-MAG_R)+'px';mag.style.top=(cy-MAG_R)+'px';
+    var ac=document.getElementById('ac');var acRect=ac.getBoundingClientRect();
+    var acLeft=acRect.left-rect.left;var acTop=acRect.top-rect.top+page.scrollTop;
+    var mi=document.getElementById('mag-in');
+    mi.style.left=(MAG_R-(cx-acLeft)*MAG_Z)+'px';
+    mi.style.top=(MAG_R-(cy+page.scrollTop-acTop)*MAG_Z)+'px';
+    mi.style.transform='scale('+MAG_Z+')';mi.style.transformOrigin='0 0';
+  }
+}
+
+/* ── Quiz ── */
+function goQ(n){document.querySelectorAll('.qstep').forEach(function(s){s.classList.remove('active');});document.getElementById('qs'+n).classList.add('active');}
+function qFont(cardId,ff){document.querySelectorAll('.qcard').forEach(function(c){c.classList.remove('on');});document.getElementById(cardId).classList.add('on');qFontV=ff;applyFontF(ff);}
+function qBG(cardId,preset){
+  document.querySelectorAll('.bgcard').forEach(function(c){c.classList.remove('on');});
+  document.getElementById(cardId).classList.add('on');
+  qPresetV=preset;
+  var p=PRESETS[preset]||{bg:'',text:''};
+  document.getElementById('page').style.background=p.bg||'';
+  applyPresetColours(p.text);  /* <-- all article text */
+}
+function qOV(cardId,col){document.querySelectorAll('#qs3 .bgcard').forEach(function(c){c.classList.remove('on');});document.getElementById(cardId).classList.add('on');qOVV=col;var ov=document.getElementById('ov');if(col){ov.style.background=col;ov.style.display='block';}else{ov.style.display='none';}}
+function finishQuiz(){
+  applyFontF(qFontV);
+  var p=PRESETS[qPresetV]||{bg:'',text:''};
+  document.getElementById('page').style.background=p.bg||'';
+  applyPresetColours(p.text);
+  var ov=document.getElementById('ov');
+  if(qOVV){ov.style.background=qOVV;ov.style.display='block';ovOn=true;}else{ov.style.display='none';ovOn=false;}
+  document.querySelectorAll('#fgrid .fchip').forEach(function(c){c.classList.remove('on');});
+  var fmap={'':'fc-arial','Lexend Exa,sans-serif':'fc-lexend','Georgia,serif':'fc-georgia','OD,cursive':'fc-od'};
+  var ch=document.getElementById(fmap[qFontV]||'fc-arial');if(ch)ch.classList.add('on');
+  document.querySelectorAll('.cpreset').forEach(function(c){c.classList.remove('on');});
+  var cp=document.getElementById('cp-'+qPresetV);if(cp)cp.classList.add('on');
+  document.getElementById('t-ov').classList.toggle('on',!!qOVV);
+  document.getElementById('ovpick').style.display=qOVV?'block':'none';
+  setTile('text',qFontV!=='');setTile('colour',qPresetV!=='none'||!!qOVV);
+  quizDone=true;prefsOn=true;
+  document.getElementById('ql-btn').style.display='none';
+  document.getElementById('pref-el').style.display='flex';
+  document.getElementById('pref-tog').classList.add('on');
+  goHome();
+}
+function togglePrefs(){
+  prefsOn=!prefsOn;
+  document.getElementById('pref-tog').classList.toggle('on',prefsOn);
+  if(prefsOn){
+    applyFontF(qFontV);
+    var p=PRESETS[qPresetV]||{bg:'',text:''};
+    document.getElementById('page').style.background=p.bg||'';
+    applyPresetColours(p.text);
+    if(qOVV){document.getElementById('ov').style.background=qOVV;document.getElementById('ov').style.display='block';ovOn=true;}
+    setTile('text',qFontV!=='');setTile('colour',qPresetV!=='none'||!!qOVV);
+    document.getElementById('t-ov').classList.toggle('on',!!qOVV);
+    document.getElementById('ovpick').style.display=qOVV?'block':'none';
+  } else {
+    applyFontF('');document.getElementById('page').style.background='';
+    applyPresetColours('');
+    document.getElementById('ov').style.display='none';ovOn=false;
+    setTile('text',false);setTile('colour',false);
+    document.getElementById('t-ov').classList.remove('on');document.getElementById('ovpick').style.display='none';
+    document.querySelectorAll('#fgrid .fchip').forEach(function(c){c.classList.remove('on');});document.getElementById('fc-arial').classList.add('on');
+    document.querySelectorAll('.cpreset').forEach(function(c){c.classList.remove('on');});document.getElementById('cp-none').classList.add('on');
+  }
+}
+
+/* ── Translate (MyMemory free API) ── */
+var origTexts={};
+function doTranslate(){
+  var lang=document.getElementById('lang-sel').value;
+  if(!lang){document.getElementById('trans-status').style.display='block';document.getElementById('trans-status').textContent='Please select a language first.';return;}
+  var els=document.querySelectorAll('.art,.art-heading');
+  var status=document.getElementById('trans-status');
+  status.style.display='block';status.textContent='Translating…';
+  var total=els.length,done=0;
+  els.forEach(function(el,i){
+    if(!origTexts[i])origTexts[i]=el.textContent;
+    var txt=origTexts[i];
+    fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(txt)+'&langpair=en|'+lang)
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.responseData&&d.responseData.translatedText)el.textContent=d.responseData.translatedText;
+        done++;
+        if(done===total){status.textContent='Translated to '+document.getElementById('lang-sel').options[document.getElementById('lang-sel').selectedIndex].text+' ✓';setTile('translate',true);}
+      })
+      .catch(function(){done++;if(done===total)status.textContent='Some segments could not be translated.';});
+  });
+}
+function revertTranslate(){
+  var els=document.querySelectorAll('.art,.art-heading');
+  els.forEach(function(el,i){if(origTexts[i])el.textContent=origTexts[i];});
+  document.getElementById('trans-status').textContent='Reverted to original.';
+  setTile('translate',false);
+}
+
+/* ── OCR (Tesseract.js) ── */
+var ocrText='';
+function runOCR(input){
+  if(!input.files||!input.files[0])return;
+  var file=input.files[0];
+  var url=URL.createObjectURL(file);
+  var prev=document.getElementById('ocr-preview');
+  prev.src=url;document.getElementById('ocr-preview-wrap').style.display='block';
+  document.getElementById('ocr-progress').style.display='block';
+  document.getElementById('ocr-result-wrap').style.display='none';
+  document.getElementById('ocr-prog-txt').textContent='Loading OCR engine…';
+  document.getElementById('ocr-bar').style.width='0%';
+  Tesseract.recognize(url,'eng',{
+    logger:function(m){
+      if(m.status==='recognizing text'){
+        var pct=Math.round((m.progress||0)*100);
+        document.getElementById('ocr-bar').style.width=pct+'%';
+        document.getElementById('ocr-prog-txt').textContent='Reading text… '+pct+'%';
+      } else {
+        document.getElementById('ocr-prog-txt').textContent=m.status||'Processing…';
+      }
+    }
+  }).then(function(result){
+    ocrText=result.data.text.trim();
+    document.getElementById('ocr-progress').style.display='none';
+    document.getElementById('ocr-result').textContent=ocrText||'No text found in image.';
+    document.getElementById('ocr-result-wrap').style.display='block';
+    setTile('ocr',!!ocrText);
+  }).catch(function(err){
+    document.getElementById('ocr-prog-txt').textContent='Error: '+err.message;
+  });
+}
+function speakOCR(){
+  if(!ocrText)return;
+  if('speechSynthesis' in window){window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(ocrText);window.speechSynthesis.speak(u);}
+}
+function copyOCR(){
+  if(!ocrText)return;
+  navigator.clipboard.writeText(ocrText).then(function(){
+    var btn=document.getElementById('copy-ocr-btn');btn.textContent='Copied ✓';setTimeout(function(){btn.textContent='Copy text';},2000);
+  });
+}
+</script>
