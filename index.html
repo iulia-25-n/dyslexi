@@ -1,4 +1,3 @@
-
 <link href="https://fonts.googleapis.com/css2?family=Lexend+Exa&family=Roboto&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
@@ -31,7 +30,7 @@
 
 /* - Page & extension layout - */
 .content{display:flex;height:546px;}
-.page{flex:1;padding:20px 22px;overflow-y:auto;position:relative;transition:background .3s;}
+.page{flex:1;padding:20px 22px;overflow-y:auto;overflow-x:hidden;position:relative;transition:background .3s;}
 .pov{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:.35;display:none;z-index:2;}
 .rul{position:absolute;left:0;right:0;height:40px;pointer-events:none;display:none;z-index:7;top:140px;background:rgba(255,220,50,.26);border-top:2px solid rgba(112,38,112,.5);border-bottom:2px solid rgba(112,38,112,.5);}
 .ftop{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.72);pointer-events:none;display:none;z-index:5;height:0;}
@@ -127,6 +126,31 @@ input[type=range]{width:100%;}
 .qbtn:hover{background:#5a1f5a;}
 .qbtn.sec{background:transparent;color:#6b5b8b;border:1px solid #d4c8eb;}
 .qbtn.sec:hover{background:rgba(0,0,0,.05);}
+/* Word highlight (TTS) */
+.art-word{display:inline;border-radius:3px;padding:0 1px;transition:background .07s;}
+/* Syllable separator */
+.syl{color:#702670;opacity:.55;font-size:.82em;user-select:none;font-family:system-ui!important;}
+/* Sentence focus */
+.art-sent{display:inline;transition:opacity .18s;}
+.art-sent.dim{opacity:.12;}
+/* Quiz symptom cards */
+.qsym{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px;}
+.qsym-card{border:2px solid #d4c8eb;border-radius:9px;padding:10px 4px 8px;text-align:center;cursor:pointer;transition:all .15s;background:white;}
+.qsym-card:hover{border-color:#702670;background:rgba(112,38,112,.06);}
+.qsym-card.on{border-color:#702670;background:rgba(112,38,112,.14);}
+.qsym-icon{font-size:20px;margin-bottom:4px;}
+.qsym-lbl{font-size:11px;color:#2a1060;font-weight:bold;line-height:1.2;}
+/* Profile result card */
+.profile-card{background:linear-gradient(135deg,#ede6fa,#d4c8eb);border-radius:14px;padding:18px 16px;margin-bottom:14px;text-align:center;}
+.profile-name{font-size:19px;font-weight:bold;color:#2a1060;margin-bottom:6px;}
+.profile-sub{font-size:12px;color:#6b5b8b;line-height:1.5;}
+.profile-features{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;}
+.profile-tag{background:white;border:1.5px solid #702670;color:#702670;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:bold;}
+/* TTS highlight swatches */
+.tts-swatches{display:flex;gap:8px;padding:4px 13px 11px;flex-wrap:wrap;}
+.tts-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s;}
+.tts-swatch:hover{transform:scale(1.15);}
+.tts-swatch.on{border-color:#702670;}
 </style>
 
 <div class="wrap">
@@ -205,7 +229,7 @@ input[type=range]{width:100%;}
                       <span style="font-size:22px;">&#10024;</span>
                       <div>
                           <div style="font-size:14px;font-weight:bold;color:#66023c;">Personalisation quiz</div>
-                          <div style="font-size:12px;color:#6b5b8b;">3 steps · find your best settings</div>
+                          <div style="font-size:12px;color:#6b5b8b;" id="ql-sub">5 questions · builds your profile</div>
                       </div>
                   </button>
                   <div class="pref-el" id="pref-el" style="display:none;">
@@ -322,6 +346,20 @@ input[type=range]{width:100%;}
                   <button class="tog" id="t-tts"></button>
               </div>
               <div class="swrap" style="padding-top:10px;"><div class="srow"><span>Reading speed</span><span class="sval" id="v-spd">1.0×</span></div><input type="range" min="0.5" max="2.0" value="1.0" step="0.1" oninput="doSpd(this.value)"></div>
+              <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-whl',toggleWordHL)">
+                  <div><div class="frow-l">Word highlight</div><div class="frow-s">Highlights each word as it's spoken</div></div>
+                  <button class="tog" id="t-whl"></button>
+              </div>
+              <div class="slbl">Highlight colour</div>
+              <div class="tts-swatches">
+                  <div class="tts-swatch on" style="background:#ffe050;" onclick="setWHLC('#ffe050',this)"></div>
+                  <div class="tts-swatch" style="background:#90caf9;" onclick="setWHLC('#90caf9',this)"></div>
+                  <div class="tts-swatch" style="background:#a5d6a7;" onclick="setWHLC('#a5d6a7',this)"></div>
+                  <div class="tts-swatch" style="background:#f48fb1;" onclick="setWHLC('#f48fb1',this)"></div>
+                  <div class="tts-swatch" style="background:#ce93d8;" onclick="setWHLC('#ce93d8',this)"></div>
+                  <div class="tts-swatch" style="background:#ffcc80;" onclick="setWHLC('#ffcc80',this)"></div>
+              </div>
           </div>
       </div>
 
@@ -347,6 +385,16 @@ input[type=range]{width:100%;}
                   <button class="tog" id="t-focus"></button>
               </div>
               <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-sentfocus',applySentFocus)">
+                  <div><div class="frow-l">Sentence focus</div><div class="frow-s">Dims all text except hovered sentence</div></div>
+                  <button class="tog" id="t-sentfocus"></button>
+              </div>
+              <div class="sep"></div>
+              <div class="frow" onclick="flipTog('t-syl',applySyl)">
+                  <div><div class="frow-l">Syllable splitting</div><div class="frow-s">Breaks long words into syl·la·bles</div></div>
+                  <button class="tog" id="t-syl"></button>
+              </div>
+              <div class="sep"></div>
               <div class="frow" onclick="flipTog('t-mag',applyMag)">
                   <div><div class="frow-l">Magnifier</div><div class="frow-s">Zoom circle follows cursor on page</div></div>
                   <button class="tog" id="t-mag"></button>
@@ -358,44 +406,97 @@ input[type=range]{width:100%;}
       <div class="screen" id="s-quiz">
           <div class="shdr"><button class="back" onclick="goHome()">&#8249;</button><span style="font-size:17px;font-weight:bold;">Find your settings</span></div>
           <div class="sscroll">
-              <div class="qstep active" id="qs0">
-                  <div style="text-align:center;padding:10px 0 8px;">
-                      <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="80" height="80" style="object-fit:contain;margin-bottom:10px;" onerror="this.outerHTML='<div style=font-size:52px>&#128024;</div>'">
-                      <div style="font-size:17px;font-weight:bold;margin-bottom:6px;">Let's find your settings</div>
-                      <div style="font-size:13px;color:#6b5b8b;margin-bottom:18px;line-height:1.5;">3 quick choices. Tap what looks best.</div>
-                  </div>
-                  <button class="qbtn" onclick="goQ(1)">Start &#8594;</button>
-                  <button class="qbtn sec" onclick="goHome()" style="margin-top:8px;">Skip</button>
+
+            <!-- Step 0: Welcome -->
+            <div class="qstep active" id="qs0">
+              <div style="text-align:center;padding:14px 0 10px;">
+                <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="80" height="80" style="object-fit:contain;margin-bottom:10px;" onerror="this.outerHTML='<div style=font-size:52px>&#128024;</div>'">
+                <div style="font-size:17px;font-weight:bold;margin-bottom:8px;color:#2a1060;">Hi! I'm Lexi.</div>
+                <div style="font-size:13px;color:#6b5b8b;margin-bottom:6px;line-height:1.6;">Tell me about how <em>you</em> read, and I'll build a personalised profile.</div>
+                <div style="font-size:12px;color:#9b8bab;margin-bottom:18px;line-height:1.5;">5 questions · watch the page preview change as you answer</div>
               </div>
-              <div class="qstep" id="qs1">
-                  <div class="qdots"><div class="qdot on"></div><div class="qdot"></div><div class="qdot"></div></div>
-                  <div class="qtitle">Which feels easiest?</div>
-                  <div class="qcards">
-                      <div class="qcard on" id="qf-arial" onclick="qFont('qf-arial','')"><div class="qcard-s" style="font-family:Arial,sans-serif;">The fox jumps.</div><div class="qcard-n">Arial</div></div>
-                      <div class="qcard" id="qf-lexend" onclick="qFont('qf-lexend','Lexend Exa,sans-serif')"><div class="qcard-s" style="font-family:'Lexend Exa',sans-serif;">The fox jumps.</div><div class="qcard-n">Lexend Exa</div></div>
-                      <div class="qcard" id="qf-georgia" onclick="qFont('qf-georgia','Georgia,serif')"><div class="qcard-s" style="font-family:Georgia,serif;">The fox jumps.</div><div class="qcard-n">Georgia</div></div>
-                      <div class="qcard" id="qf-od" onclick="qFont('qf-od','OD,cursive')"><div class="qcard-s" style="font-family:'OD',cursive;">The fox jumps.</div><div class="qcard-n">OpenDyslexic</div></div>
-                  </div>
-                  <button class="qbtn" onclick="goQ(2)">Next &#8594;</button>
+              <button class="qbtn" onclick="startQuiz()">Let's go &#8594;</button>
+              <button class="qbtn sec" id="retake-btn" onclick="startQuiz()" style="margin-top:8px;display:none;">Retake quiz</button>
+              <button class="qbtn sec" onclick="goHome()" style="margin-top:8px;">Skip for now</button> 
+            </div>
+
+            <!-- Step 1: Letters moving/blurring -->
+            <div class="qstep" id="qs1">
+              <div class="qdots"><div class="qdot on"></div><div class="qdot"></div><div class="qdot"></div><div class="qdot"></div><div class="qdot"></div></div>
+              <div class="qtitle">Do letters ever seem to blur, move, or jump around?</div>
+              <div style="font-size:12px;color:#9b8bab;margin-bottom:12px;line-height:1.5;">This is called visual stress — a colour overlay can help stabilise the page.</div>
+              <div class="qsym">
+                <div class="qsym-card" id="qa1-never" onclick="qAns(1,'never',this)"><div class="qsym-icon">&#128077;</div><div class="qsym-lbl">Rarely or never</div></div>
+                <div class="qsym-card" id="qa1-sometimes" onclick="qAns(1,'sometimes',this)"><div class="qsym-icon">&#128528;</div><div class="qsym-lbl">Sometimes</div></div>
+                <div class="qsym-card" id="qa1-often" onclick="qAns(1,'often',this)"><div class="qsym-icon">&#128547;</div><div class="qsym-lbl">Often</div></div>
               </div>
-              <div class="qstep" id="qs2">
-                  <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot"></div></div>
-                  <div class="qtitle">Which is easiest to read?</div>
-                  <div class="bgcard on" id="qbg-none" onclick="qBG('qbg-none','none')"><div class="bgprev" style="background:white;color:#333;">The quick brown fox</div><div class="bglbl">Default · plain white</div></div>
-                  <div class="bgcard" id="qbg-navygold" onclick="qBG('qbg-navygold','navygold')"><div class="bgprev" style="background:#1a2a6c;color:#f5cc00;">The quick brown fox</div><div class="bglbl">Navy &amp; Gold</div></div>
-                  <div class="bgcard" id="qbg-midmint" onclick="qBG('qbg-midmint','midmint')"><div class="bgprev" style="background:#0a2040;color:#64ffb4;">The quick brown fox</div><div class="bglbl">Midnight &amp; Mint</div></div>
-                  <div class="bgcard" id="qbg-parch" onclick="qBG('qbg-parch','parchment')"><div class="bgprev" style="background:#e8d5b0;color:#1a3a8f;">The quick brown fox</div><div class="bglbl">Parchment &amp; Navy</div></div>
-                  <button class="qbtn" onclick="goQ(3)">Next &#8594;</button>
+              <button class="qbtn" onclick="goQ(2)">Next &#8594;</button>
+            </div>
+
+            <!-- Step 2: Losing place between lines -->
+            <div class="qstep" id="qs2">
+              <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot"></div><div class="qdot"></div><div class="qdot"></div></div>
+              <div class="qtitle">Do you often lose your place between lines?</div>
+              <div style="font-size:12px;color:#9b8bab;margin-bottom:12px;line-height:1.5;">A reading ruler or focus strip can help guide your eye across the page.</div>
+              <div class="qsym">
+                <div class="qsym-card" id="qa2-never" onclick="qAns(2,'never',this)"><div class="qsym-icon">&#128077;</div><div class="qsym-lbl">Rarely or never</div></div>
+                <div class="qsym-card" id="qa2-sometimes" onclick="qAns(2,'sometimes',this)"><div class="qsym-icon">&#128528;</div><div class="qsym-lbl">Sometimes</div></div>
+                <div class="qsym-card" id="qa2-often" onclick="qAns(2,'often',this)"><div class="qsym-icon">&#128547;</div><div class="qsym-lbl">Often</div></div>
               </div>
-              <div class="qstep" id="qs3">
-                  <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div></div>
-                  <div class="qtitle">Add a colour tint?</div>
-                  <div class="bgcard on" id="qov-none" onclick="qOV('qov-none',null)"><div class="bgprev" style="background:#f5f5f5;color:#444;">No tint</div></div>
-                  <div class="bgcard" id="qov-yellow" onclick="qOV('qov-yellow','#fffcb8')"><div class="bgprev" style="background:#fffcb8;color:#5a4a00;">Yellow · warm &amp; soft</div></div>
-                  <div class="bgcard" id="qov-blue" onclick="qOV('qov-blue','#bbdefb')"><div class="bgprev" style="background:#bbdefb;color:#0d3a6e;">Blue · cool &amp; calm</div></div>
-                  <div class="bgcard" id="qov-green" onclick="qOV('qov-green','#c8e6c9')"><div class="bgprev" style="background:#c8e6c9;color:#1b4a1e;">Green · gentle</div></div>
-                  <button class="qbtn" onclick="finishQuiz()">Done &#10003;</button>
+              <button class="qbtn" onclick="goQ(3)">Next &#8594;</button>
+            </div>
+
+            <!-- Step 3: Words running together -->
+            <div class="qstep" id="qs3">
+              <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div><div class="qdot"></div><div class="qdot"></div></div>
+              <div class="qtitle">Do words feel too close together or jumbled?</div>
+              <div style="font-size:12px;color:#9b8bab;margin-bottom:12px;line-height:1.5;">Increasing word and letter spacing can give text more breathing room.</div>
+              <div class="qsym">
+                <div class="qsym-card" id="qa3-never" onclick="qAns(3,'never',this)"><div class="qsym-icon">&#128077;</div><div class="qsym-lbl">Rarely or never</div></div>
+                <div class="qsym-card" id="qa3-sometimes" onclick="qAns(3,'sometimes',this)"><div class="qsym-icon">&#128528;</div><div class="qsym-lbl">Sometimes</div></div>
+                <div class="qsym-card" id="qa3-often" onclick="qAns(3,'often',this)"><div class="qsym-icon">&#128547;</div><div class="qsym-lbl">Often</div></div>
               </div>
+              <button class="qbtn" onclick="goQ(4)">Next &#8594;</button>
+            </div>
+
+            <!-- Step 4: White backgrounds tiring -->
+            <div class="qstep" id="qs4">
+              <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div><div class="qdot"></div></div>
+              <div class="qtitle">Does a plain white page feel tiring or glaring?</div>
+              <div style="font-size:12px;color:#9b8bab;margin-bottom:12px;line-height:1.5;">A contrast colour preset can make reading much more comfortable.</div>
+              <div class="qsym">
+                <div class="qsym-card" id="qa4-never" onclick="qAns(4,'never',this)"><div class="qsym-icon">&#128077;</div><div class="qsym-lbl">Rarely or never</div></div>
+                <div class="qsym-card" id="qa4-sometimes" onclick="qAns(4,'sometimes',this)"><div class="qsym-icon">&#128528;</div><div class="qsym-lbl">Sometimes</div></div>
+                <div class="qsym-card" id="qa4-often" onclick="qAns(4,'often',this)"><div class="qsym-icon">&#128547;</div><div class="qsym-lbl">Often</div></div>
+              </div>
+              <button class="qbtn" onclick="goQ(5)">Next &#8594;</button>
+            </div>
+
+            <!-- Step 5: Long words overwhelming -->
+            <div class="qstep" id="qs5">
+              <div class="qdots"><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div><div class="qdot on"></div></div>
+              <div class="qtitle">Do long words feel overwhelming or hard to decode?</div>
+              <div style="font-size:12px;color:#9b8bab;margin-bottom:12px;line-height:1.5;">Syllable splitting breaks words into chunks — e.g. "ex·traor·di·na·ry".</div>
+              <div class="qsym">
+                <div class="qsym-card" id="qa5-never" onclick="qAns(5,'never',this)"><div class="qsym-icon">&#128077;</div><div class="qsym-lbl">Rarely or never</div></div>
+                <div class="qsym-card" id="qa5-sometimes" onclick="qAns(5,'sometimes',this)"><div class="qsym-icon">&#128528;</div><div class="qsym-lbl">Sometimes</div></div>
+                <div class="qsym-card" id="qa5-often" onclick="qAns(5,'often',this)"><div class="qsym-icon">&#128547;</div><div class="qsym-lbl">Often</div></div>
+              </div>
+              <button class="qbtn" onclick="finishQuiz()">See my profile &#10003;</button>
+            </div>
+
+            <!-- Step 6: Profile result -->
+            <div class="qstep" id="qs6">
+              <div class="profile-card" id="profile-card">
+                <img src="https://framerusercontent.com/images/pZ4LPBfvICIsEpoWt8Rj68DjUAI.png" width="60" height="60" style="object-fit:contain;margin-bottom:8px;" onerror="this.outerHTML=''">
+                <div class="profile-name" id="profile-name">Visual Stress Reader</div>
+                <div class="profile-sub" id="profile-sub">Your settings have been applied below.</div>
+                <div class="profile-features" id="profile-tags"></div>
+              </div>
+              <button class="qbtn" onclick="applyProfile()">Apply these settings &#10003;</button>
+              <button class="qbtn sec" onclick="goQ(1)" style="margin-top:8px;">Retake quiz</button>
+            </div>
+
           </div>
       </div>
 
@@ -477,9 +578,13 @@ input[type=range]{width:100%;}
 </div>
 
 <script>
-var extOpen=false,masterOn=true,rulerOn=false,focusOn=false,magOn=false,ovOn=false,ttsOn=false;
+var extOpen=false,masterOn=true,rulerOn=false,focusOn=false,sentFocusOn=false,magOn=false,ovOn=false,ttsOn=false,sylOn=false;
 var ttsSpd=1.0,ttsUtt=null,prefsOn=false,quizDone=false;
+var ttsHLOn=false,ttsHLColor='#ffe050';
+var wordSpans=[],wordCharPos=[];
 var qFontV='',qPresetV='none',qOVV=null;
+var qAnswers={1:'never',2:'never',3:'never',4:'never',5:'never'};
+var savedProfile=null;
 var PRESETS={
   none:{bg:'',text:''},
   navygold:{bg:'#1a2a6c',text:'#f5cc00'},
@@ -487,6 +592,12 @@ var PRESETS={
   midmint:{bg:'#0a2040',text:'#64ffb4'},
   parchment:{bg:'#e8d5b0',text:'#1a3a8f'}
 };
+
+/* ── On load: build word spans and sentence spans ── */
+window.addEventListener('load',function(){
+  buildWordSpans();
+  buildSentenceSpans();
+});
 
 /* ── helpers ── */
 function toggleExt(){extOpen=!extOpen;document.getElementById('popup').classList.toggle('closed',!extOpen);}
@@ -572,6 +683,53 @@ function applyOV(on){
 function setOVC(c,el){document.getElementById('ov').style.background=c;document.querySelectorAll('.ovdot').forEach(function(d){d.classList.remove('on');});el.classList.add('on');}
 
 /* ── Audio ── */
+function buildWordSpans(){
+  document.querySelectorAll('.art').forEach(function(el){
+    el.innerHTML=el.textContent.replace(/(\S+)/g,'<span class="art-word">$1</span>');
+  });
+}
+function buildSentenceSpans(){
+  document.querySelectorAll('.art').forEach(function(el){
+    var text=el.textContent;
+    var sentences=text.match(/[^.!?]+[.!?]*/g)||[text];
+    el.innerHTML=sentences.map(function(s){
+      return '<span class="art-sent">'+s.replace(/(\S+)/g,'<span class="art-word">$1</span>')+'</span>';
+    }).join('');
+  });
+  wordSpans=Array.from(document.querySelectorAll('.art-word'));
+}
+function clearWordHL(){
+  document.querySelectorAll('.art-word').forEach(function(s){
+    s.style.background='';s.style.borderRadius='';s.style.padding='';
+  });
+}
+function toggleWordHL(on){ttsHLOn=on;}
+function setWHLC(c,el){ttsHLColor=c;document.querySelectorAll('.tts-swatch').forEach(function(d){d.classList.remove('on');});el.classList.add('on');}
+
+/* Timer-based word highlight — works on all browsers */
+var hlTimer=null,hlIndex=0;
+function startWordHL(words){
+  if(hlTimer)clearInterval(hlTimer);
+  hlIndex=0;
+  // Estimate ms per word based on average syllables + rate
+  // ~150 words per minute at 1x = 400ms/word
+  var msPerWord=Math.round(400/ttsSpd);
+  hlTimer=setInterval(function(){
+    clearWordHL();
+    if(hlIndex>=words.length){clearInterval(hlTimer);hlTimer=null;return;}
+    var span=words[hlIndex];
+    if(span){
+      span.style.background=ttsHLColor;
+      span.style.borderRadius='3px';
+      span.style.padding='0 2px';
+      // scroll into view if needed
+      span.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'});
+    }
+    hlIndex++;
+  },msPerWord);
+}
+function stopWordHL(){if(hlTimer){clearInterval(hlTimer);hlTimer=null;}clearWordHL();}
+
 function doTTS(){
   if(!masterOn)return;
   ttsOn=!document.getElementById('t-tts').classList.contains('on');
@@ -580,17 +738,48 @@ function doTTS(){
   if(ttsOn){
     if('speechSynthesis' in window){
       window.speechSynthesis.cancel();
-      var txt=document.getElementById('ac').innerText.replace(/\s+/g,' ');
-      ttsUtt=new SpeechSynthesisUtterance(txt);ttsUtt.rate=ttsSpd;
-      ttsUtt.onend=function(){document.getElementById('t-tts').classList.remove('on');ttsOn=false;sub.textContent='Uses browser voices';setTile('audio',false);};
-      window.speechSynthesis.speak(ttsUtt);sub.textContent='Reading aloud…';setTile('audio',true);
+      stopWordHL();
+      var spans=Array.from(document.querySelectorAll('.art-word'));
+      var txt=spans.map(function(s){return s.textContent;}).join(' ');
+      ttsUtt=new SpeechSynthesisUtterance(txt);
+      ttsUtt.rate=ttsSpd;
+      ttsUtt.onstart=function(){if(ttsHLOn)startWordHL(spans);};
+      ttsUtt.onend=function(){
+        document.getElementById('t-tts').classList.remove('on');
+        ttsOn=false;stopWordHL();
+        sub.textContent='Uses browser voices';setTile('audio',false);
+      };
+      window.speechSynthesis.speak(ttsUtt);
+      sub.textContent='Reading aloud…';setTile('audio',true);
     } else {sub.textContent='Not supported here';}
   } else {
     if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    stopWordHL();
     sub.textContent='Uses browser voices';setTile('audio',false);
   }
 }
-function doSpd(v){ttsSpd=parseFloat(v);document.getElementById('v-spd').textContent=ttsSpd.toFixed(1)+'×';if(ttsUtt)ttsUtt.rate=ttsSpd;}
+function doSpd(v){
+  ttsSpd=parseFloat(v);
+  document.getElementById('v-spd').textContent=ttsSpd.toFixed(1)+'×';
+  // If TTS is currently playing, restart from beginning at new rate
+  // (Web Speech API ignores rate changes on an active utterance)
+  if(ttsOn&&'speechSynthesis' in window){
+    window.speechSynthesis.cancel();
+    stopWordHL();
+    var spans=Array.from(document.querySelectorAll('.art-word'));
+    var txt=spans.map(function(s){return s.textContent;}).join(' ');
+    ttsUtt=new SpeechSynthesisUtterance(txt);
+    ttsUtt.rate=ttsSpd;
+    ttsUtt.onstart=function(){if(ttsHLOn)startWordHL(spans);};
+    ttsUtt.onend=function(){
+      document.getElementById('t-tts').classList.remove('on');
+      ttsOn=false;stopWordHL();
+      document.getElementById('tts-sub').textContent='Uses browser voices';
+      setTile('audio',false);
+    };
+    window.speechSynthesis.speak(ttsUtt);
+  }
+}
 
 /* ── Reading ── */
 function applyRul(on){rulerOn=on;document.getElementById('rul').style.display=on?'block':'none';if(on)document.getElementById('page').style.cursor='none';else if(!magOn)document.getElementById('page').style.cursor='';setTile('reading',rulerOn||focusOn||magOn);}
@@ -614,7 +803,39 @@ function applyMag(on){
     document.getElementById('mag').style.display='none';
     if(!rulerOn)page.style.cursor='';
   }
-  setTile('reading',rulerOn||focusOn||magOn);
+  setTile('reading',rulerOn||focusOn||sentFocusOn||sylOn||magOn);
+}
+
+/* ── Sentence focus ── */
+function applySentFocus(on){
+  sentFocusOn=on;
+  if(!on){document.querySelectorAll('.art-sent').forEach(function(s){s.classList.remove('dim');});}
+  setTile('reading',rulerOn||focusOn||sentFocusOn||sylOn||magOn);
+}
+
+/* ── Syllable splitting ── */
+function syllabify(word){
+  if(word.length<=3)return word;
+  // Basic VCV and VCCV splitting for prototype
+  var r=word;
+  // VCCV → VC·CV
+  r=r.replace(/([aeiouAEIOU])([bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]{2})([aeiouAEIOU])/g,function(m,v1,cc,v2){return v1+cc[0]+'<span class="syl">·</span>'+cc[1]+v2;});
+  // VCV → V·CV (only mid-word)
+  r=r.replace(/([aeiouAEIOU])([bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ])([aeiouAEIOU])/g,function(m,v1,c,v2,offset){return offset>0?v1+'<span class="syl">·</span>'+c+v2:m;});
+  return r;
+}
+function applySyl(on){
+  sylOn=on;
+  wordSpans=Array.from(document.querySelectorAll('.art-word'));
+  wordSpans.forEach(function(span){
+    if(on){
+      if(!span.dataset.orig)span.dataset.orig=span.textContent;
+      span.innerHTML=syllabify(span.dataset.orig);
+    } else {
+      if(span.dataset.orig)span.innerHTML=span.dataset.orig;
+    }
+  });
+  setTile('reading',rulerOn||focusOn||sentFocusOn||sylOn||magOn);
 }
 
 function pageMove(e){
@@ -623,6 +844,12 @@ function pageMove(e){
   var cx=e.clientX-rect.left;var cy=e.clientY-rect.top;
   if(rulerOn)document.getElementById('rul').style.top=Math.max(0,cy-20)+'px';
   if(focusOn){var ph=page.clientHeight,strip=50;document.getElementById('ftop').style.height=Math.max(0,cy-strip/2)+'px';document.getElementById('fbot').style.height=Math.max(0,ph-cy-strip/2)+'px';}
+  if(sentFocusOn){
+    var target=e.target;
+    var sent=null;
+    while(target&&target!==page){if(target.classList&&target.classList.contains('art-sent')){sent=target;break;}target=target.parentElement;}
+    document.querySelectorAll('.art-sent').forEach(function(s){s.classList.toggle('dim',s!==sent);});
+  }
   if(magOn){
     var MAG_R=80,MAG_Z=2.5;
     var mag=document.getElementById('mag');
@@ -638,35 +865,146 @@ function pageMove(e){
 
 /* ── Quiz ── */
 function goQ(n){document.querySelectorAll('.qstep').forEach(function(s){s.classList.remove('active');});document.getElementById('qs'+n).classList.add('active');}
-function qFont(cardId,ff){document.querySelectorAll('.qcard').forEach(function(c){c.classList.remove('on');});document.getElementById(cardId).classList.add('on');qFontV=ff;applyFontF(ff);}
-function qBG(cardId,preset){
-  document.querySelectorAll('.bgcard').forEach(function(c){c.classList.remove('on');});
-  document.getElementById(cardId).classList.add('on');
-  qPresetV=preset;
-  var p=PRESETS[preset]||{bg:'',text:''};
-  document.getElementById('page').style.background=p.bg||'';
-  applyPresetColours(p.text);  /* <-- all article text */
+
+function startQuiz(){
+  // Reset answers
+  qAnswers={1:'never',2:'never',3:'never',4:'never',5:'never'};
+  // Clear any previous answer highlights
+  document.querySelectorAll('.qsym-card').forEach(function(c){c.classList.remove('on');});
+  goQ(1);
 }
-function qOV(cardId,col){document.querySelectorAll('#qs3 .bgcard').forEach(function(c){c.classList.remove('on');});document.getElementById(cardId).classList.add('on');qOVV=col;var ov=document.getElementById('ov');if(col){ov.style.background=col;ov.style.display='block';}else{ov.style.display='none';}}
+
+function qAns(q,val,el){
+  qAnswers[q]=val;
+  // Highlight selected card for this question
+  var prefix='qa'+q+'-';
+  document.querySelectorAll('[id^="'+prefix+'"]').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  // Live preview on page
+  livePreviewForQ(q,val);
+}
+
+function livePreviewForQ(q,val){
+  var strong=(val==='often'),moderate=(val==='sometimes');
+  if(q===1){// visual stress → overlay
+    var ov=document.getElementById('ov');
+    if(strong){ov.style.background='#fffcb8';ov.style.display='block';}
+    else if(moderate){ov.style.background='#e1bee7';ov.style.display='block';}
+    else{ov.style.display='none';}
+  }
+  if(q===2){// losing place → line height
+    document.querySelectorAll('.art').forEach(function(e){e.style.lineHeight=strong?'2.4':moderate?'2.1':'1.8';});
+  }
+  if(q===3){// words crowded → spacing
+    document.querySelectorAll('.art').forEach(function(e){
+      e.style.wordSpacing=strong?'8px':moderate?'4px':'0';
+      e.style.letterSpacing=strong?'1.5px':moderate?'0.5px':'0';
+    });
+  }
+  if(q===4){// white glare → contrast preset
+    var p=strong?PRESETS.parchment:moderate?PRESETS.midmint:PRESETS.none;
+    document.getElementById('page').style.background=p.bg||'';
+    applyPresetColours(p.text);
+  }
+  if(q===5){// long words → syllables (preview)
+    if(strong||moderate){applySyl(true);document.getElementById('t-syl').classList.add('on');}
+    else{applySyl(false);document.getElementById('t-syl').classList.remove('on');}
+  }
+}
+
+function buildProfile(){
+  // Score each dimension
+  var score={visual:0,navigation:0,spacing:0,contrast:0,decoding:0};
+  var weight={never:0,sometimes:1,often:2};
+  score.visual=weight[qAnswers[1]];
+  score.navigation=weight[qAnswers[2]];
+  score.spacing=weight[qAnswers[3]];
+  score.contrast=weight[qAnswers[4]];
+  score.decoding=weight[qAnswers[5]];
+
+  // Find dominant trait
+  var max=0,dominant='navigation';
+  Object.keys(score).forEach(function(k){if(score[k]>max){max=score[k];dominant=k;}});
+
+  var profiles={
+    visual:{name:'Visual Stress Reader',sub:'Colour overlays and contrast presets help stabilise the page for you.',features:['Colour overlay','Parchment theme']},
+    navigation:{name:'Line Tracker',sub:'You need strong structure to guide your eye — rulers and focus mode are your tools.',features:['Reading ruler','Focus mode','Wide line height']},
+    spacing:{name:'Crowded Text Reader',sub:'Text feels too dense — you need breathing room between words and letters.',features:['Word spacing','Letter spacing']},
+    contrast:{name:'Contrast Reader',sub:'Plain white is hard on your eyes — a softer, high-contrast background makes a real difference.',features:['Contrast preset','Colour overlay']},
+    decoding:{name:'Word Decoder',sub:'Long words are the challenge — syllable splitting breaks them into manageable chunks.',features:['Syllable splitting','OpenDyslexic font']}
+  };
+
+  // If total score is very low, give a gentle profile
+  var total=Object.values(score).reduce(function(a,b){return a+b;},0);
+  if(total<=1){
+    return{name:'Mild Dyslexia Profile',sub:'Your symptoms are relatively mild. Light adjustments are all you need.',features:['Light overlay','Comfortable spacing'],scores:score,dominant:'visual'};
+  }
+  // If multiple high scores, "Complex Reader"
+  var highCount=Object.values(score).filter(function(v){return v>=2;}).length;
+  if(highCount>=3){
+    return{name:'Complex Reader',sub:'You experience multiple dyslexia patterns. All major tools have been enabled for you.',features:['Overlay','Ruler','Spacing','Contrast','Syllables'],scores:score,dominant:'mixed'};
+  }
+  var p=profiles[dominant];
+  p.scores=score;p.dominant=dominant;
+  return p;
+}
+
 function finishQuiz(){
-  applyFontF(qFontV);
-  var p=PRESETS[qPresetV]||{bg:'',text:''};
-  document.getElementById('page').style.background=p.bg||'';
-  applyPresetColours(p.text);
-  var ov=document.getElementById('ov');
-  if(qOVV){ov.style.background=qOVV;ov.style.display='block';ovOn=true;}else{ov.style.display='none';ovOn=false;}
-  document.querySelectorAll('#fgrid .fchip').forEach(function(c){c.classList.remove('on');});
-  var fmap={'':'fc-arial','Lexend Exa,sans-serif':'fc-lexend','Georgia,serif':'fc-georgia','OD,cursive':'fc-od'};
-  var ch=document.getElementById(fmap[qFontV]||'fc-arial');if(ch)ch.classList.add('on');
-  document.querySelectorAll('.cpreset').forEach(function(c){c.classList.remove('on');});
-  var cp=document.getElementById('cp-'+qPresetV);if(cp)cp.classList.add('on');
-  document.getElementById('t-ov').classList.toggle('on',!!qOVV);
-  document.getElementById('ovpick').style.display=qOVV?'block':'none';
-  setTile('text',qFontV!=='');setTile('colour',qPresetV!=='none'||!!qOVV);
+  var profile=buildProfile();
+  savedProfile=profile;
+  // Show result step
+  document.getElementById('profile-name').textContent=profile.name;
+  document.getElementById('profile-sub').textContent=profile.sub;
+  var tagsEl=document.getElementById('profile-tags');
+  tagsEl.innerHTML=profile.features.map(function(f){return '<span class="profile-tag">'+f+'</span>';}).join('');
+  goQ(6);
+}
+
+function applyProfile(){
+  if(!savedProfile)return;
+  var s=savedProfile.scores;
+  var weight={never:0,sometimes:1,often:2};
+  // Apply visual stress → overlay
+  if(s.visual>=1){
+    var ov=document.getElementById('ov');
+    ov.style.background=s.visual===2?'#fffcb8':'#e1bee7';
+    ov.style.display='block';ovOn=true;
+    document.getElementById('t-ov').classList.add('on');
+    document.getElementById('ovpick').style.display='block';
+  }
+  // Apply navigation → ruler + focus
+  if(s.navigation>=1){
+    rulerOn=true;document.getElementById('rul').style.display='block';document.getElementById('t-rul').classList.add('on');
+    if(s.navigation===2){focusOn=true;document.getElementById('ftop').style.display='block';document.getElementById('fbot').style.display='block';document.getElementById('t-focus').classList.add('on');}
+  }
+  // Apply spacing
+  if(s.spacing>=1){
+    var ws=s.spacing===2?'8px':'4px';var ls=s.spacing===2?'1.5px':'0.5px';
+    document.querySelectorAll('.art').forEach(function(e){e.style.wordSpacing=ws;e.style.letterSpacing=ls;});
+  }
+  // Apply contrast
+  if(s.contrast>=1){
+    var preset=s.contrast===2?'parchment':'midmint';
+    setPreset(preset);
+  }
+  // Apply decoding → syllables + OD font
+  if(s.decoding>=1){
+    applySyl(true);document.getElementById('t-syl').classList.add('on');
+    if(s.decoding===2){selFont('fc-od','OD,cursive');}
+  }
+  // Set line height for navigation
+  if(s.navigation>=1){
+    var lh=s.navigation===2?'2.4':'2.1';
+    document.querySelectorAll('.art').forEach(function(e){e.style.lineHeight=lh;});
+  }
+  setTile('text',true);setTile('colour',true);setTile('reading',true);
   quizDone=true;prefsOn=true;
   document.getElementById('ql-btn').style.display='none';
   document.getElementById('pref-el').style.display='flex';
   document.getElementById('pref-tog').classList.add('on');
+  document.getElementById('ql-sub').textContent='Profile: '+savedProfile.name;
+  var retakeBtn=document.getElementById('retake-btn');
+  if(retakeBtn)retakeBtn.style.display='block';
   goHome();
 }
 function togglePrefs(){
